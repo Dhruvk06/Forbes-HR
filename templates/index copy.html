@@ -1,0 +1,201 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width,initial-scale=1.0" />
+    <title>Employee Bot</title>
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" />
+    <script src="{{ url_for('serve_static', filename='chatbot.js') }}"></script>
+    <link rel="stylesheet" href="{{ url_for('static', filename='chatbot.css') }}" />
+
+</head>
+<body>
+    <div id="chatbot-icon" onclick="toggleChat()" data-tooltip="Let's chat">💬</div>
+
+    <div id="chatbot-container">
+        <div class="chat-header">
+            <span class="chat-title">Employee Assistant Bot</span>
+            <button class="close-btn" onclick="toggleChat()">×</button>
+        </div>
+        <div class="chat-window">
+            <div class="chat-messages" id="chat-box"></div>
+            <div class="input-area">
+                <input type="text" id="user-input" placeholder="Type your message..." onkeypress="handleKeyPress(event)" />
+                <button class="btn btn-primary" onclick="sendMessage()">Send</button>
+                <button class="btn btn-outline-secondary" onclick="resetChat()">Reset</button>
+                <button class="btn btn-outline-info" onclick="showQuickOptions()">Quick Options</button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        let chatState = 'awaiting_token';
+        let employeeId = null;
+        let messageHistory = [];
+        let isThinking = false;
+
+        function toggleChat() {
+            const container = document.getElementById('chatbot-container');
+            container.classList.toggle('active');
+            if (container.classList.contains('active') && !messageHistory.length) {
+                initChat();
+            }
+        }
+
+        function initChat() {
+            const chatBox = document.getElementById('chat-box');
+            chatBox.innerHTML = '';
+            chatState = 'awaiting_token';
+            employeeId = null;
+            messageHistory = [];
+            appendBotMessage("👋 Welcome to Employee Assistant Bot!!");
+            appendBotMessage("Please enter your employee ID:");
+        }
+
+        function handleKeyPress(event) {
+            if (event.key === 'Enter') sendMessage();
+        }
+
+        function sendMessage() {
+            const userInput = document.getElementById('user-input');
+            const message = userInput.value.trim();
+            if (!message) return;
+
+            const upperMessage = message.toUpperCase();
+            appendUserMessage(upperMessage);
+            messageHistory.push({ role: 'user', content: upperMessage });
+            userInput.value = '';
+
+            processMessage(message);
+        }
+
+        function showThinking() {
+            if (isThinking) return;
+            isThinking = true;
+            const chatBox = document.getElementById('chat-box');
+            const loader = document.createElement('div');
+            loader.className = 'loader';
+            loader.innerHTML = `
+                <div class="message-icon"></div>
+                <div class="dots">
+                    <div class="dot"></div>
+                    <div class="dot"></div>
+                    <div class="dot"></div>
+                </div>
+            `;
+            chatBox.appendChild(loader);
+            chatBox.scrollTop = chatBox.scrollHeight;
+        }
+
+        function hideThinking() {
+            isThinking = false;
+            const chatBox = document.getElementById('chat-box');
+            const loader = chatBox.querySelector('.loader');
+            if (loader) {
+                chatBox.removeChild(loader);
+            }
+        }
+
+        function processMessage(message) {
+            const upperMessage = message.toUpperCase();
+
+            if (chatState === 'awaiting_token') {
+                if (!/^[A-Z0-9]+$/.test(upperMessage)) {
+                    appendBotMessage("⚠️ Please enter a valid alphanumeric employee ID (letters and numbers only).");
+                    return;
+                }
+                employeeId = upperMessage;
+                chatState = 'awaiting_question';
+                appendBotMessage(`✅ Employee ID ${employeeId} set. How can I assist you today?`);
+                //showQuickOptions();
+            } else {
+                showThinking();
+                const formData = new FormData();
+                formData.append('token', employeeId);
+                formData.append('question', upperMessage);
+
+                fetch('/query', {
+                    method: 'POST',
+                    body: formData
+                })
+                .then(response => {
+                    if (!response.ok) {
+                        throw new Error(`HTTP error! status: ${response.status}`);
+                    }
+                    return response.json();
+                })
+                .then(data => {
+                    hideThinking();
+                    appendBotMessage(data.response);
+                    messageHistory.push({ role: 'bot', content: data.response });
+                })
+                .catch(error => {
+                    hideThinking();
+                    appendBotMessage(`Error: ${error.message}`);
+                    messageHistory.push({ role: 'bot', content: `Error: ${error.message}` });
+                });
+            }
+        }
+
+        function showQuickOptions() {
+            const options = [
+                "View Employee Name",
+                "Employee Department"
+            ];
+            let optionsHtml = "Quick options:<br>" + options.map(opt => 
+                `<button class="btn btn-sm btn-outline-primary m-1" onclick="sendQuickOption('${opt}')">${opt}</button>`
+            ).join('');
+            appendBotMessage(optionsHtml);
+        }
+
+        function sendQuickOption(option) {
+            appendUserMessage(option);
+            messageHistory.push({ role: 'user', content: option });
+            processMessage(option);
+        }
+
+        function resetChat() {
+            initChat();
+        }
+
+        function appendBotMessage(text) {
+            const chatBox = document.getElementById('chat-box');
+            const div = document.createElement('div');
+            div.className = 'bot-message';
+            div.innerHTML = `
+                <div class="message-icon"></div>
+                <div class="message-content">${text}</div>
+            `;
+            chatBox.appendChild(div);
+            chatBox.scrollTop = chatBox.scrollHeight;
+        }
+
+        function appendUserMessage(text) {
+            const chatBox = document.getElementById('chat-box');
+            const div = document.createElement('div');
+            div.className = 'user-message';
+            div.innerHTML = `
+                <div class="message-icon"></div>
+                <div class="message-content">${text}</div>
+            `;
+            chatBox.appendChild(div);
+            chatBox.scrollTop = chatBox.scrollHeight;
+        }
+
+        window.addEventListener('beforeunload', () => {
+            localStorage.setItem('chatHistory', JSON.stringify(messageHistory));
+        });
+
+        window.addEventListener('load', () => {
+            const savedHistory = localStorage.getItem('chatHistory');
+            if (savedHistory) {
+                messageHistory = JSON.parse(savedHistory);
+                messageHistory.forEach(msg => {
+                    if (msg.role === 'user') appendUserMessage(msg.content);
+                    else appendBotMessage(msg.content);
+                });
+            }
+        });
+    </script>
+</body>
+</html>
