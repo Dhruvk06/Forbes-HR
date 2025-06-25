@@ -1,0 +1,1290 @@
+<html>
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Employee Assistant Bot</title>
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" />
+</head>
+<body>
+<script>
+(function () {
+    let style = document.createElement("style");
+    style.innerHTML = `
+#chatbot-icon {
+                position: fixed;
+                bottom: 20px;
+                right: 20px;
+                width: 60px;
+                height: 60px;
+                border-radius: 50%;
+                text-align: center;
+                cursor: pointer;
+                z-index: 1000;
+                transition: transform 0.3s ease-in-out, box-shadow 0.3s;
+                box-shadow: 0 6px 12px rgba(0, 0, 0, 0.2);
+                background: url('https://img.freepik.com/premium-vector/professional-call-center-agent-operator-avatar-vector-illustration_1151483-81532.jpg') no-repeat center;
+                background-size: cover;
+            }
+
+            #chatbot-icon:hover {
+                transform: scale(1.15);
+                box-shadow: 0 8px 16px rgba(0, 0, 0, 0.3);
+            }
+
+            #chatbot-icon::after {
+                content: "Hello! I'm Xingo, Your Saviour!";
+                position: absolute;
+                right: 120%;
+                top: 50%;
+                transform: translateY(-50%);
+                background: linear-gradient(90deg, #1a1a1a, #333);
+                color: #fff;
+                padding: 8px 12px;
+                border-radius: 8px;
+                font-size: 14px;
+                white-space: nowrap;
+                opacity: 0;
+                visibility: hidden;
+                transition: opacity 0.3s ease-in-out, transform 0.3s ease-in-out;
+            }
+
+            #chatbot-icon:hover::after {
+                opacity: 1;
+                visibility: visible;
+                transform: translateY(-50%) translateX(-5px);
+            }
+
+            #chatbot-container {
+                position: fixed;
+                bottom: 90px;
+                right: 20px;
+                width: 380px;
+                max-height: 650px;
+                background: #fff;
+                box-shadow: 0 8px 24px rgba(0, 0, 0, 0.2);
+                border-radius: 16px;
+                z-index: 1000;
+                display: flex;
+                flex-direction: column;
+                visibility: hidden;
+                opacity: 0;
+                transform: translateY(20px);
+                transition: all 0.4s ease-in-out;
+            }
+
+            #chatbot-container.active {
+                visibility: visible;
+                opacity: 1;
+                transform: translateY(0);
+                width: 100vw;
+                height: 100vh;
+                max-height: 100vh;
+                bottom: 0;
+                right: 0;
+                border-radius: 0;
+                box-shadow: none;
+            }
+
+            .chat-header {
+                background: linear-gradient(90deg, #007bff, #00c4ff);
+                color: #fff;
+                padding: 14px 20px;
+                display: flex;
+                justify-content: space-between;
+                align-items: center;
+                position: sticky;
+                top: 0;
+                z-index: 2;
+                border-top-left-radius: 16px;
+                border-top-right-radius: 16px;
+            }
+
+            #chatbot-container.active .chat-header {
+                border-radius: 0;
+            }
+
+            .chat-title {
+                font-weight: 700;
+                font-size: 1.2rem;
+                letter-spacing: 0.5px;
+            }
+
+            .chat-window {
+                flex: 1;
+                display: flex;
+                flex-direction: column;
+                overflow-y: auto;
+                background: #f8fafc;
+            }
+
+            .chat-messages {
+                padding: 20px;
+                flex-grow: 1;
+                overflow-y: auto;
+                scrollbar-width: thin;
+                scrollbar-color: #007bff #f1f1f1;
+            }
+
+            .chat-messages::-webkit-scrollbar {
+                width: 8px;
+            }
+
+            .chat-messages::-webkit-scrollbar-track {
+                background: #f1f1f1;
+            }
+
+            .chat-messages::-webkit-scrollbar-thumb {
+                background: #007bff;
+                border-radius: 4px;
+            }
+
+            .bot-message, .user-message {
+                display: flex;
+                align-items: flex-start;
+                margin-bottom: 15px;
+                max-width: 85%;
+                animation: slideIn 0.4s ease-out;
+            }
+
+            .bot-message {
+                margin-right: auto;
+            }
+
+            .user-message {
+                margin-left: auto;
+                flex-direction: row-reverse;
+            }
+
+            .message-icon {
+                width: 36px;
+                height: 36px;
+                border-radius: 50%;
+                margin: 0 12px;
+                flex-shrink: 0;
+                box-shadow: 0 2px 4px rgba(0, 0,0, 0.1);
+            }
+
+            .bot-message .message-icon {
+                background: url('https://img.freepik.com/premium-vector/professional-call-center-agent-operator-avatar-vector-illustration_1151483-81532.jpg') no-repeat center;
+                background-size: cover;
+            }
+
+            .user-message .message-icon {
+                background: url('https://img.icons8.com/color/48/000000/user.png') no-repeat center;
+                background-size: cover;
+            }
+
+.message-content {
+    padding: 12px 18px;
+    border-radius: 18px;
+    line-height: 1.8; /* Increased for readability */
+    word-wrap: break-word;
+    font-size: 0.95rem;
+    display: inline-block;
+    white-space: pre-line; /* Ensures newlines are rendered as line breaks */
+}
+
+            .bot-message .message-content {
+                background: #e5e7eb;
+                color: #1f2937;
+            }
+
+            .user-message .message-content {
+                background: #007bff;
+                color: #fff;
+            }
+
+            .input-area {
+                padding: 12px;
+                background: #fff;
+                border-top: 1px solid #e5e7eb;
+                display: flex;
+                flex-wrap: wrap;
+                gap: 10px;
+                border-bottom-left-radius: 16px;
+                border-bottom-right-radius: 16px;
+            }
+
+            #chatbot-container.active .input-area {
+                border-radius: 0;
+            }
+
+            #user-input, #hr-user-input {
+                flex: 1;
+                min-width: 220px;
+                border: 1px solid #d1d5db;
+                border-radius: 24px;
+                padding: 10px 18px;
+                transition: border-color 0.3s, box-shadow 0.3s;
+                font-size: 0.95rem;
+            }
+
+            #user-input:focus, #hr-user-input:focus {
+                outline: none;
+                border-color: #007bff;
+                box-shadow: 0 0 8px rgba(0, 123, 255, 0.3);
+            }
+
+            .btn-primary, .btn-toggle {
+                border-radius: 24px;
+                padding: 8px 20px;
+                background: #007bff;
+                border: none;
+                transition: background 0.3s, transform 0.2s;
+            }
+
+            .btn-primary:hover, .btn-toggle:hover {
+                background: #0056b3;
+                transform: translateY(-2px);
+            }
+
+            .btn-outline-secondary, .btn-outline-info {
+                border-radius: 24px;
+                padding: 8px 20px;
+                transition: border-color 0.3s, transform 0.2s;
+            }
+
+            .btn-outline-secondary:hover, .btn-outline-info:hover {
+                transform: translateY(-2px);
+            }
+
+            .close-btn {
+                background: none;
+                border: none;
+                color: #fff;
+                font-size: 1.3rem;
+                cursor: pointer;
+                transition: color 0.3s, transform 0.2s;
+            }
+
+            .close-btn:hover {
+                color: #ff4d4d;
+                transform: scale(1.1);
+            }
+
+            .loader {
+                display: flex;
+                align-items: center;
+                margin-bottom: 15px;
+                max-width: 85%;
+            }
+
+            .loader .message-icon {
+                background: url('https://img.freepik.com/premium-vector/professional-call-center-agent-operator-avatar-vector-illustration_1151483-81532.jpg') no-repeat center;
+                background-size: cover;
+            }
+
+            .dots {
+                display: flex;
+                align-items: center;
+            }
+
+            .dot {
+                width: 10px;
+                height: 10px;
+                background: #007bff;
+                border-radius: 50%;
+                margin: 0 4px;
+                animation: dot-bounce 1.2s infinite ease-in-out both;
+            }
+
+            .dot:nth-child(1) { animation-delay: -0.36s; }
+            .dot:nth-child(2) { animation-delay: -0.18s; }
+
+            @keyframes dot-bounce {
+                0%, 80%, 100% { transform: scale(0); }
+                40% { transform: scale(1.2); }
+            }
+
+            @keyframes slideIn {
+                from { opacity: 0; transform: translateY(15px); }
+                to { opacity: 1; transform: translateY(0); }
+            }
+
+            .popup-message-container {
+                position: fixed;
+                left: 20px;
+                display: inline-block;
+                max-width: 80vw;
+                background: rgba(255, 255, 255, 0.7);
+                backdrop-filter: blur(15px);
+                -webkit-backdrop-filter: blur(15px);
+                box-shadow: 0 8px 24px rgba(0, 0, 0, 0.2);
+                border-radius: 16px;
+                z-index: 900;
+                padding: 15px 20px;
+                display: none;
+                align-items: center;
+                border: 1px solid rgba(255, 255, 255, 0.8);
+                margin-bottom: 15px;
+            }
+
+            .info-message {
+                display: block;
+                max-width: 100%;
+                animation: slideIn 0.4s ease-out;
+            }
+
+            .info-message .message-content {
+                color: #000;
+                text-shadow: 0 1px 2px rgba(0, 0, 0, 0.2);
+                padding: 0;
+                line-height: 1.5;
+                word-wrap: break-word;
+                font-size: 0.95rem;
+                width: 100%;
+                text-align: left;
+                background: none;
+                border-radius: 0;
+            }
+
+            #psoft-input-area, #hr-input-area {
+                display: none;
+            }
+
+            #psoft-input-area.active, #hr-input-area.active {
+                display: flex;
+            }
+
+            @media (max-width: 576px) {
+                #chatbot-icon {
+                    width: 50px;
+                    height: 50px;
+                    bottom: 15px;
+                    right: 15px;
+                }
+
+                #chatbot-container {
+                    bottom: 75px;
+                    right: 10px;
+                    width: 90vw;
+                    max-height: 70vh;
+                }
+
+                #chatbot-container.active {
+                    width: 100vw;
+                    height: 100vh;
+                    max-height: 100vh;
+                    bottom: 0;
+                    right: 0;
+                    border-radius: 0;
+                }
+
+                .popup-message-container {
+                    max-width: 85vw;
+                    left: 15px;
+                    padding: 12px 15px;
+                }
+
+                .info-message .message-content {
+                    font-size: 0.9rem;
+                }
+            }
+
+            @media (max-width: 400px) {
+                #chatbot-container {
+                    width: 95vw;
+                    max-height: 65vh;
+                }
+
+                #chatbot-container.active {
+                    width: 100vw;
+                    height: 100vh;
+                    max-height: 100vh;
+                    bottom: 0;
+                    right: 0;
+                    border-radius: 0;
+                }
+
+                .popup-message-container {
+                    max-width: 90vw;
+                }
+
+                .input-area {
+                    flex-direction: column;
+                }
+
+                #user-input, #hr-user-input {
+                    min-width: 100%;
+                    margin-bottom: 10px;
+                }
+
+                .btn-primary, .btn-outline-secondary, .btn-outline-info, .btn-toggle {
+                    width: 100%;
+                    padding: 10px;
+                }
+            }
+    
+    /* === Confirmation block container === */
+.confirmation-content {
+    background-color: #f0f2f5;
+    border-radius: 12px;
+    padding: 12px 16px;
+    font-size: 0.95rem;
+    line-height: 1.5;
+    color: #1f2937;
+    margin: 4px 0; /* Reduced vertical gap */
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+    font-family: inherit;
+    max-width: 100%;
+    overflow-x: auto;
+}
+
+/* === List formatting (for experience/education) === */
+.confirmation-content ul {
+    margin: 0;
+    padding-left: 20px;
+}
+.confirmation-content li {
+    margin: 2px 0;
+}
+
+/* === Button container === */
+.confirmation-buttons {
+    display: flex;
+    gap: 10px;
+    margin-top: 10px;
+}
+.confirmation-buttons button {
+    padding: 6px 14px;
+    font-size: 0.85rem;
+    border-radius: 6px;
+}
+
+/* === Table formatting for insurance details === */
+.insurance-table {
+    width: 100%;
+    border-collapse: collapse;
+    margin-top: 10px;
+    font-size: 13px;
+}
+.insurance-table th,
+.insurance-table td {
+    border: 1px solid #ccc;
+    padding: 8px 12px;
+    text-align: left;
+    vertical-align: middle;
+}
+.insurance-table th {
+    background-color: #e6e9ed;
+    font-weight: 600;
+}
+.insurance-table td {
+    background-color: #fff;
+}
+
+/* === Override default bubble style only for confirmation block === */
+.bot-message > .message-content:has(.confirmation-content) {
+    background: transparent !important;
+    padding: 0 !important;
+    border-radius: 0 !important;
+    box-shadow: none !important;
+}
+
+/* === Align avatar and message properly (optional structure cleanup) === */
+.chat-row {
+    display: flex;
+    align-items: flex-start;
+    gap: 10px;
+    margin-top: 6px;
+}
+.chat-avatar img {
+    width: 36px;
+    height: 36px;
+    border-radius: 50%;
+    object-fit: cover;
+}
+.bot-message,
+.user-message {
+    padding: 8px 12px;
+    margin: 0;
+    background-color: #ffffff;
+    border-radius: 8px;
+    max-width: 90%;
+}
+            `;
+    document.head.appendChild(style);
+
+    let empid = "F3762";
+    let employeeName = null;
+    let messageHistory = [];
+    let isThinking = false;
+    let currentMode = 'psoft';
+    let exp = {};
+    let edqalification = {};
+    let insuranceDetails = [];
+
+
+
+
+
+    const infoMessages = [
+        "👋 HR Chatbot – Your Instant HR Assistant!",
+        "🤖 Our intelligent HR Chatbot provides quick and accurate answers to all your HR-related queries.",
+        "✔ <b>HR Policies & Guidelines</b> – Get detailed insights into company policies.",
+        "✔ <b>Leave & Attendance</b> – Check leave balance, attendance records, and request leaves.",
+        "✔ <b>Payroll & Benefits</b> – Find salary, bonuses, and benefits information.",
+        "✔ <b>Employee Services</b> – Learn about onboarding, training, and career development.",
+        "✔ <b>General HR FAQs</b> – Get instant answers to HR questions.",
+    ];
+
+    function levenshteinDistance(a, b) {
+        const matrix = Array(b.length + 1).fill(null).map(() => Array(a.length + 1).fill(null));
+        for (let i = 0; i <= a.length; i++) matrix[0][i] = i;
+        for (let j = 0; j <= b.length; j++) matrix[j][0] = j;
+        for (let j = 1; j <= b.length; j++) {
+            for (let i = 1; i <= a.length; i++) {
+                const indicator = a[i - 1] === b[j - 1] ? 0 : 1;
+                matrix[j][i] = Math.min(
+                    matrix[j][i - 1] + 1,
+                    matrix[j - 1][i] + 1,
+                    matrix[j - 1][i - 1] + indicator
+                );
+            }
+        }
+        return matrix[b.length][a.length];
+    }
+
+    function isSimilar(word, keywordWord) {
+        const maxEdits = Math.max(1, Math.floor(keywordWord.length * 0.4));
+        const distance = levenshteinDistance(word.toLowerCase(), keywordWord.toLowerCase());
+        return distance <= maxEdits ? distance : -1;
+    }
+
+    function simpleStem(word) {
+        const rules = [
+            { suffix: "ing", replacement: "" },
+            { suffix: "s", replacement: "" },
+            { suffix: "ed", replacement: "" },
+            { suffix: "ion", replacement: "" },
+        ];
+        let stemmed = word.toLowerCase();
+        for (const rule of rules) {
+            if (stemmed.endsWith(rule.suffix)) {
+                stemmed = stemmed.slice(0, -rule.suffix.length) + rule.replacement;
+                break;
+            }
+        }
+        return stemmed;
+    }
+
+    function phoneticTransform(word) {
+        word = word.toLowerCase();
+        const firstLetter = word.charAt(0);
+        word = word.slice(1)
+            .replace(/[aeiou]/g, '')
+            .replace(/s/g, 'z')
+            .replace(/f/g, 'ph');
+        return firstLetter + word;
+    }
+
+    function nGramSimilarity(word1, word2, n = 2) {
+        function getNGrams(word, n) {
+            const nGrams = new Set();
+            for (let i = 0; i <= word.length - n; i++) {
+                nGrams.add(word.slice(i, i + n));
+            }
+            return nGrams;
+        }
+
+        const nGrams1 = getNGrams(word1.toLowerCase(), n);
+        const nGrams2 = getNGrams(word2.toLowerCase(), n);
+
+        const intersection = new Set([...nGrams1].filter(x => nGrams2.has(x)));
+        const union = new Set([...nGrams1, ...nGrams2]);
+
+        return intersection.size / union.size;
+    }
+
+    function displayInfoMessages() {
+        let topPosition = 20;
+        infoMessages.forEach((message, index) => {
+            setTimeout(() => {
+                const container = document.createElement('div');
+                container.className = 'popup-message-container';
+                container.style.top = `${topPosition}px`;
+                document.body.appendChild(container);
+
+                const div = document.createElement('div');
+                div.className = 'info-message';
+                div.innerHTML = `
+                    <div class="message-content">${message}</div>
+                `;
+                container.appendChild(div);
+                container.style.display = 'flex';
+
+                const containerHeight = container.offsetHeight;
+                topPosition += containerHeight + 15;
+            }, index * 1000);
+        });
+    }
+
+    let chatIcon = document.createElement("div");
+    chatIcon.id = "chatbot-icon";
+    document.body.appendChild(chatIcon);
+
+    let chatContainer = document.createElement("div");
+    chatContainer.id = "chatbot-container";
+    chatContainer.innerHTML = `
+        <div class="chat-header">
+            <span class="chat-title">Employee Assistant Bot</span>
+            <div>
+                <button class="btn btn-toggle" onclick="toggleMode()">Switch to HR Policy</button>
+                <button class="close-btn" onclick="toggleChat()">×</button>
+            </div>
+        </div>
+        <div class="chat-window">
+            <div class="chat-messages" id="chat-box"></div>
+            <div class="input-area" id="psoft-input-area">
+                <input type="text" id="user-input" placeholder="Type your question..." onkeypress="handleKeyPress(event)" />
+                <button class="btn btn-primary" onclick="sendMessage()">Send</button>
+                <button class="btn btn-outline-secondary" onclick="confirmResetChat()">Reset</button>
+                <button class="btn btn-outline-info" onclick="showQuickOptions()">Quick Options</button>
+            </div>
+            <div class="input-area" id="hr-input-area">
+                <input type="text" id="hr-user-input" placeholder="Ask about HR policy..." onkeypress="handleKeyPressHR(event)" />
+                <button class="btn btn-primary" onclick="sendHRMessage()">Send</button>
+                <button class="btn btn-outline-secondary" onclick="confirmResetChat()">Reset</button>
+                <button class="btn btn-outline-info" onclick="showQuickOptions()">Quick Options</button>
+            </div>
+        </div>
+    `;
+    document.body.appendChild(chatContainer);
+
+async function loadEmployeeData() {
+    try {
+        const response = await fetch('/get_employee_data', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json'
+            },
+            body: JSON.stringify({ token: empid })
+        });
+
+        if (!response.ok) return;
+
+        const result = await response.json();
+        if (result.error) return;
+
+        const experience = result.experience || [];
+        const education = result.education || [];
+        insuranceDetails = result.insurance || [];
+
+        exp = {};
+        experience.forEach((item, index) => {
+            exp[`Job ${index + 1}`] = `${item.title} at ${item.employer}`;
+        });
+
+        edqalification = {};
+        education.forEach((item, index) => {
+            edqalification[`Degree ${index + 1}`] = `${item.degree} (${item.year})`;
+        });
+
+        if (typeof initChat === "function") {
+            initChat();
+        }
+    } catch (error) {
+         console.error("[ERROR] Exception during fetch:", error);
+    }
+}
+
+
+
+window.addEventListener('DOMContentLoaded', () => {
+    loadEmployeeData();
+});
+
+
+ async function fetchEmployeeName() {
+    const formData = new FormData();
+    formData.append('token', empid);
+    formData.append('question', 'View Employee Name');
+
+    const response = await fetch('/query', {
+        method: 'POST',
+        body: formData
+    });
+    const data = await response.json();
+    localStorage.setItem('employeeName', data.response);
+    return data.response;
+}
+
+
+    window.toggleChat = function () {
+        const container = document.getElementById('chatbot-container');
+        container.classList.toggle('active');
+        if (container.classList.contains('active') && !messageHistory.length) {
+            initChat();
+        }
+    };
+
+    window.toggleMode = function () {
+        const chatTitle = document.querySelector('.chat-title');
+        const psoftInputArea = document.getElementById('psoft-input-area');
+        const hrInputArea = document.getElementById('hr-input-area');
+        const toggleBtn = document.querySelector('.btn-toggle');
+
+        if (currentMode === 'psoft') {
+            currentMode = 'hr';
+            chatTitle.textContent = 'HR Policy Assistant Bot';
+            psoftInputArea.classList.remove('active');
+            hrInputArea.classList.add('active');
+            toggleBtn.textContent = 'Switch to PeopleSoft';
+            initChat();
+        } else {
+            currentMode = 'psoft';
+            chatTitle.textContent = 'Employee Assistant Bot';
+            hrInputArea.classList.remove('active');
+            psoftInputArea.classList.add('active');
+            toggleBtn.textContent = 'Switch to HR Policy';
+            initChat();
+        }
+    };
+
+function showInsuranceConfirmation() {
+    if (!insuranceDetails.length) {
+        appendBotMessage("No insurance details available.");
+        return;
+    }
+
+    const rows = insuranceDetails.map((item, index) => `
+        <tr>
+            <td>${index + 1}</td>
+            <td>${item["DEPENDENT NAME"] || ''}</td>
+            <td>${item["RELATIONSHIP"] || ''}</td>
+            <td>${item["INSURANCE REQUIRED"] || ''}</td>
+        </tr>
+    `).join('');
+
+    const html = `
+        <div class="confirmation-content">
+            <p>Please confirm if the following insurance details are correct:</p>
+            <table class="insurance-table">
+                <thead>
+                    <tr>
+                        <th>#</th>
+                        <th>Dependent Name</th>
+                        <th>Relationship</th>
+                        <th>Insurance Required</th>
+                    </tr>
+                </thead>
+                <tbody>${rows}</tbody>
+            </table>
+            <div class="confirmation-buttons">
+                <button class="btn btn-sm btn-outline-primary m-1" onclick="handleInsuranceConfirmation('Yes')">Yes</button>
+                <button class="btn btn-sm btn-outline-primary m-1" onclick="handleInsuranceConfirmation('No')">No</button>
+            </div>
+        </div>
+    `;
+
+    appendBotMessage(html);
+    messageHistory.push({ role: 'bot', content: html });
+}
+
+window.handleInsuranceConfirmation = function (response) {
+    appendUserMessage(response);
+    messageHistory.push({ role: 'user', content: response });
+
+    if (response === 'Yes') {
+        localStorage.setItem('insuranceConfirmed', 'Yes');
+        appendBotMessage("✅ Thank you! Insurance details confirmed.");
+        messageHistory.push({ role: 'bot', content: "Insurance details confirmed." });
+        showQuickOptions();
+    } else {
+        const updateLink = "https://hr92uat2.forbesmarshall.com/psc/peoplesoft01_40/EMPLOYEE/HRMS/c/JPM_EMPLOYEE.JPM_PROFILE_XFR_FL.GBL";
+        appendBotMessage(`Please update your insurance details <a href="${updateLink}" target="_blank">here</a>.`);
+        messageHistory.push({ role: 'bot', content: `Please update your insurance details <a href="${updateLink}" target="_blank">here</a>.` });
+    }
+};
+
+
+
+    async function initChat() {
+    const chatBox = document.getElementById('chat-box');
+    chatBox.innerHTML = '';
+    messageHistory = [];
+
+    if (currentMode === 'psoft') {
+        if (!employeeName) {
+            employeeName = await fetchEmployeeName();
+        }
+
+        if (employeeName) {
+            appendBotMessage(`👋 Welcome, ${employeeName}!`);
+        } else {
+            appendBotMessage("👋 Welcome to Employee Assistant Bot!!");
+        }
+
+        const eduConfirmed = localStorage.getItem('confirmationStatus') === 'Yes';
+        const insuranceConfirmed = localStorage.getItem('insuranceConfirmed') === 'Yes';
+
+        if (!eduConfirmed) {
+            // Step 1: confirm education + experience
+            showConfirmation();
+        } else if (!insuranceConfirmed) {
+            // Step 2: confirm insurance
+            showInsuranceConfirmation();
+        } else {
+            // All confirmed
+            appendBotMessage("How can I help you?");
+            messageHistory.push({ role: 'bot', content: "How can I help you?" });
+            showQuickOptions();
+        }
+
+    } else {
+        appendBotMessage("👋 Welcome to HR Policy Assistant Bot! Ask about Forbes Marshall HR policies.");
+        messageHistory.push({ role: 'bot', content: "Welcome to HR Policy Assistant Bot! Ask about Forbes Marshall HR policies." });
+        showQuickOptions();
+    }
+}
+
+
+
+
+    window.handleKeyPress = function (event) {
+        if (event.key === 'Enter') sendMessage();
+    };
+
+    window.handleKeyPressHR = function (event) {
+        if (event.key === 'Enter') sendHRMessage();
+    };
+
+    window.sendMessage = function () {
+        const userInput = document.getElementById('user-input');
+        const message = userInput.value.trim();
+        if (!message) {
+            appendBotMessage('Please enter a question.');
+            return;
+        }
+
+        const upperMessage = message.toUpperCase();
+        appendUserMessage(upperMessage);
+        messageHistory.push({ role: 'user', content: upperMessage });
+        userInput.value = '';
+
+        processMessage(empid, upperMessage);
+    };
+
+    window.sendHRMessage = function () {
+        const userInput = document.getElementById('hr-user-input');
+        const message = userInput.value.trim();
+        if (!message) {
+            appendBotMessage('Please enter a question.');
+            return;
+        }
+
+        appendUserMessage(message);
+        messageHistory.push({ role: 'user', content: message });
+        userInput.value = '';
+
+        processHRMessage(message);
+    };
+
+    function showConfirmation() {
+    let expList = Object.entries(exp)
+        .map(([key, value]) => value ? `<li><b>${key}:</b> ${value}</li>` : '')
+        .filter(Boolean)
+        .join('');
+    let expHtml = expList ? `<b>Prior Experience:</b><ul>${expList}</ul>` : '<b>Prior Experience:</b> None provided';
+
+    let eduList = Object.entries(edqalification)
+        .map(([key, value]) => value ? `<li><b>${key}:</b> ${value}</li>` : '')
+        .filter(Boolean)
+        .join('');
+    let eduHtml = eduList ? `<b>Education:</b><ul>${eduList}</ul>` : '<b>Education:</b> None provided';
+
+    const confirmationMessage = `
+        <div class="confirmation-content">
+            Could you please confirm if these are your experience and education qualifications?
+            ${expHtml}
+            ${eduHtml}
+            <div class="confirmation-buttons">
+                <button class="btn btn-sm btn-outline-primary m-1" onclick="handleConfirmation('Yes')">Yes</button>
+                <button class="btn btn-sm btn-outline-primary m-1" onclick="handleConfirmation('No')">No</button>
+            </div>
+        </div>
+    `;
+    appendBotMessage(confirmationMessage);
+    messageHistory.push({ role: 'bot', content: confirmationMessage });
+}
+
+
+window.handleConfirmation = function (response) {
+    appendUserMessage(response);
+    messageHistory.push({ role: 'user', content: response });
+
+    if (response === 'Yes') {
+        localStorage.setItem('confirmationStatus', 'Yes');
+        appendBotMessage("✅ Experience and education confirmed.");
+        messageHistory.push({ role: 'bot', content: "Experience and education confirmed." });
+
+        // 👇 Proceed to insurance confirmation
+        showInsuranceConfirmation();
+    } else {
+        const updateLink = "https://hr92uat2.forbesmarshall.com/psc/peoplesoft01_40/EMPLOYEE/HRMS/c/JPM_EMPLOYEE.JPM_PROFILE_XFR_FL.GBL";
+        appendBotMessage(`Please update your details <a href="${updateLink}" target="_blank">here</a>.`);
+        messageHistory.push({ role: 'bot', content: `Please update your details <a href="${updateLink}" target="_blank">here</a>.` });
+    }
+};
+
+
+    function showThinking() {
+        if (isThinking) return;
+        isThinking = true;
+        const chatBox = document.getElementById('chat-box');
+        const loader = document.createElement('div');
+        loader.className = 'loader';
+        loader.innerHTML = `
+            <div class="message-icon"></div>
+            <div class="dots">
+                <div class="dot"></div>
+                <div class="dot"></div>
+                <div class="dot"></div>
+            </div>
+        `;
+        chatBox.appendChild(loader);
+        chatBox.scrollTop = chatBox.scrollHeight;
+    }
+
+    function hideThinking() {
+        isThinking = false;
+        const chatBox = document.getElementById('chat-box');
+        const loader = chatBox.querySelector('.loader');
+        if (loader) {
+            chatBox.removeChild(loader);
+        }
+    }
+
+    function processMessage(token, message) {
+        showThinking();
+
+        const keywordLinks = [
+            {
+                keywords: ["update personal highlight", "personal highlight link"],
+                keywordWords: [
+                    { word: "update", synonyms: ["update", "edit"], stemmed: "update", weight: 0.3 },
+                    { word: "personal", synonyms: ["personal", "persnal"], stemmed: "personal", weight: 0.7 },
+                    { word: "highlight", synonyms: ["highlight", "highlights"], stemmed: "highlight", weight: 0.7 },
+                    { word: "link", synonyms: ["link"], stemmed: "link", weight: 0.2 }
+                ],
+                link: "https://psoft.forbesmarshall.com/psp/fmprod92_7/EMPLOYEE/HRMS/c/FM_ROLE_EMPLOYEE.FM_RESPO_CMP.GBLR",
+                response: `Here is the link to update your personal highlights: <a href="{link}" target="_blank">Click here</a>`
+            },
+            {
+                keywords: ["update personal data", "personal data link"],
+                keywordWords: [
+                    { word: "update", synonyms: ["update", "edit"], stemmed: "update", weight: 0.3 },
+                    { word: "personal", synonyms: ["personal", "persnal"], stemmed: "personal", weight: 0.7 },
+                    { word: "data", synonyms: ["data", "info"], stemmed: "data", weight: 0.7 },
+                    { word: "link", synonyms: ["link"], stemmed: "link", weight: 0.2 }
+                ],
+                link: "https://hr92uat2.forbesmarshall.com/psc/peoplesoft01_40/EMPLOYEE/HRMS/c/EL_EMPLOYEE_FL.HR_EE_ADDR_FL.GBL?PAGE=HR_EE_ADDR_FL&ACTION=U&EMPLID=F7053&HCRCS_REL_ACTN=Y&OPRID=test&PT_PARENTPAGE_MODE=NUI",
+                response: `Here is the link to update your personal data: <a href="{link}" target="_blank">Click here</a>`
+            },
+            {
+                keywords: ["self appraisal form", "self appraisal link"],
+                keywordWords: [
+                    { word: "self", synonyms: ["self"], stemmed: "self", weight: 0.5 },
+                    { word: "appraisal", synonyms: ["appraisal", "appraisals"], stemmed: "apprais", weight: 0.8 },
+                    { word: "form", synonyms: ["form"], stemmed: "form", weight: 0.4 },
+                    { word: "link", synonyms: ["link"], stemmed: "link", weight: 0.2 }
+                ],
+                link: "https://hr92uat2.forbesmarshall.com/psc/peoplesoft01_40/EMPLOYEE/HRMS/c/FM_ROLE_EMPLOYEE.FM_SELF_APRSAL_FL.GBL",
+                response: `Here is the link to fill your self-appraisal form: <a href="{link}" target="_blank">Click here</a>`
+            },
+            {
+                keywords: ["term insurance form", "term insurance link"],
+                keywordWords: [
+                    { word: "term", synonyms: ["term"], stemmed: "term", weight: 0.6 },
+                    { word: "insurance", synonyms: ["insurance", "insur"], stemmed: "insur", weight: 0.8 },
+                    { word: "form", synonyms: ["form"], stemmed: "form", weight: 0.4 },
+                    { word: "link", synonyms: ["link"], stemmed: "link", weight: 0.2 }
+                ],
+                link: "http://hr92uat2.forbesmarshall.com/psp/peoplesoft01_40/EMPLOYEE/HRMS/c/FM_ROLE_EMPLOYEE.FM_INSU_CMP.GBL",
+                response: `Here is the link for the term insurance form: <a href="{link}" target="_blank">Click here</a>`
+            },
+            {
+                keywords: ["todays attendance"],
+                keywordWords: [
+                    { word: "todays", synonyms: ["todays", "today"], stemmed: "today", weight: 0.4 },
+                    { word: "attendance", synonyms: ["attendance", "attandance"], stemmed: "attend", weight: 0.8 }
+                ],
+                link: "https://hr92uat2.forbesmarshall.com/psc/peoplesoft01_40/EMPLOYEE/HRMS/c/NUI_FRAMEWORK.PT_AGSTARTPAGE_NUI.GBL",
+                response: `Here is the link to view today's attendance: <a href="{link}" target="_blank">Click here</a>`
+            },
+            {
+                keywords: ["flexi report employee"],
+                keywordWords: [
+                    { word: "flexi", synonyms: ["flexi", "flex", "flexy", "rexli"], stemmed: "flexi", weight: 0.7 },
+                    { word: "report", synonyms: ["report", "reports"], stemmed: "report", weight: 0.6 },
+                    { word: "employee", synonyms: ["employee", "emp", "empl", "emplyee"], stemmed: "employ", weight: 0.2 }
+                ],
+                link: "https://hr92uat2.forbesmarshall.com/psc/peoplesoft01_40/EMPLOYEE/HRMS/c/NUI_FRAMEWORK.PT_AGSTARTPAGE_NUI.GBL",
+                response: `Here is the link to view the flexi report for employees: <a href="{link}" target="_blank">Click here</a>`
+            },
+            {
+                keywords: ["training history page"],
+                keywordWords: [
+                    { word: "training", synonyms: ["training", "train"], stemmed: "train", weight: 0.8 },
+                    { word: "history", synonyms: ["history", "hist"], stemmed: "hist", weight: 0.6 },
+                    { word: "page", synonyms: ["page"], stemmed: "page", weight: 0.3 }
+                ],
+                link: "https://hr92uat2.forbesmarshall.com/",
+                response: `Here is the link to view your training history: <a href="{link}" target="_blank">Click here</a>`
+            },
+            {
+                keywords: ["view company directory"],
+                keywordWords: [
+                    { word: "view", synonyms: ["view", "see"], stemmed: "view", weight: 0.3 },
+                    { word: "company", synonyms: ["company", "org"], stemmed: "compani", weight: 0.6 },
+                    { word: "directory", synonyms: ["directory", "list"], stemmed: "directori", weight: 0.8 }
+                ],
+                link: "https://hr92uat2.forbesmarshall.com/psc/peoplesoft01_40/EMPLOYEE/HRMS/c/HRCD_EMPLOYEE_FL.HRCD_ORG_CHART_FL.GBL",
+                response: `Here is the link to view the company directory: <a href="{link}" target="_blank">Click here</a>`
+            },
+            {
+                keywords: ["raise requisition"],
+                keywordWords: [
+                    { word: "raise", synonyms: ["raise", "submit"], stemmed: "raise", weight: 0.4 },
+                    { word: "requisition", synonyms: ["requisition", "request"], stemmed: "requisit", weight: 0.8 }
+                ],
+                link: "https://psoft.forbesmarshall.com/psp/fmprod92/EMPLOYEE/HRMS/c/HRS_HRPM.HRS_JO_FIND_JOB.GBL",
+                response: `Here is the link to raise a requisition: <a href="{link}" target="_blank">Click here</a>`
+            },
+            {
+                keywords: ["new job offering"],
+                keywordWords: [
+                    { word: "new", synonyms: ["new"], stemmed: "new", weight: 0.3 },
+                    { word: "job", synonyms: ["job"], stemmed: "job", weight: 0.6 },
+                    { word: "offering", synonyms: ["offering", "offer"], stemmed: "offer", weight: 0.7 }
+                ],
+                link: "https://hr92uat2.forbesmarshall.com/psc/peoplesoft01_40/EMPLOYEE/HRMS/c/HRS_MANAGER_FL.HRS_OPEN_JO_FLU.GBL",
+                response: `Here is the link to view new job offerings: <a href="{link}" target="_blank">Click here</a>`
+            }
+        ];
+
+        const lowerMessage = message.toLowerCase();
+        const userWords = lowerMessage.split(/\s+/);
+        let bestMatch = null;
+        let highestConfidence = 0;
+
+        for (const entry of keywordLinks) {
+            let matchScore = 0;
+            let phoneticScore = 0;
+            let nGramScore = 0;
+            const matchedWords = new Set();
+
+            for (const userWord of userWords) {
+                const stemmedUserWord = simpleStem(userWord);
+                const phoneticUserWord = phoneticTransform(userWord);
+
+                for (const keywordWordObj of entry.keywordWords) {
+                    if (matchedWords.has(keywordWordObj.word)) continue;
+
+                    let minDistance = Infinity;
+                    let matchedSynonym = false;
+                    let bestPhoneticMatch = 0;
+                    let bestNGramMatch = 0;
+
+                    for (const synonym of keywordWordObj.synonyms) {
+                        const distance = isSimilar(userWord, synonym);
+                        if (distance !== -1 && distance < minDistance) {
+                            minDistance = distance;
+                            matchedSynonym = true;
+                        }
+
+                        const phoneticSynonym = phoneticTransform(synonym);
+                        if (phoneticUserWord === phoneticSynonym) bestPhoneticMatch = 1;
+
+                        const nGramSim = nGramSimilarity(userWord, synonym);
+                        if (nGramSim > bestNGramMatch) bestNGramMatch = nGramSim;
+                    }
+
+                    if (!matchedSynonym) {
+                        const distance = isSimilar(stemmedUserWord, keywordWordObj.stemmed);
+                        if (distance !== -1 && distance < minDistance) {
+                            matchedSynonym = true;
+                        }
+                    }
+
+                    if (matchedSynonym) {
+                        matchScore += keywordWordObj.weight;
+                        phoneticScore += bestPhoneticMatch;
+                        nGramScore += bestNGramMatch;
+                        matchedWords.add(keywordWordObj.word);
+                    }
+                }
+            }
+
+            const totalWeight = entry.keywordWords.reduce((sum, kw) => sum + kw.weight, 0);
+            const normalizedMatchScore = matchScore / totalWeight;
+            const confidence = (normalizedMatchScore * 0.5) + (phoneticScore * 0.2) + (nGramScore * 0.3);
+
+            if (confidence >= 0.6 && confidence > highestConfidence) {
+                highestConfidence = confidence;
+                bestMatch = entry;
+            }
+        }
+
+        if (bestMatch) {
+            hideThinking();
+            const response = bestMatch.response.replace("{link}", bestMatch.link);
+            appendBotMessage(response);
+            messageHistory.push({ role: 'bot', content: response });
+        } else {
+            const formData = new FormData();
+            formData.append('token', token);
+            formData.append('question', message);
+
+            fetch('/query', {
+                method: 'POST',
+                body: formData
+            })
+            .then(response => response.json())
+            .then(data => {
+                hideThinking();
+                const reply = (data.response || "").trim();
+                appendBotMessage(reply);
+                messageHistory.push({ role: 'bot', content: reply });
+
+                const fallbackTriggers = ["not sure", "sorry", "try again", "clarify", "don't understand"];
+                const isFallback = reply.length < 10 || fallbackTriggers.some(f => reply.toLowerCase().includes(f));
+
+                if (isFallback) {
+                    const suggestionMessage = `If you're looking for a specific link, try asking for: ${keywordLinks
+                        .map(entry => `'${entry.keywords[0]}'`)
+                        .join(', ')}.`;
+                    appendBotMessage(suggestionMessage);
+                    messageHistory.push({ role: 'bot', content: suggestionMessage });
+                }
+            })
+            .catch(error => {
+                hideThinking();
+                appendBotMessage(`Error: ${error.message}`);
+                messageHistory.push({ role: 'error', content: error.message });
+            });
+        }
+    }
+
+    function processHRMessage(message) {
+        showThinking();
+
+        const formData = new FormData();
+        formData.append('question', message);
+
+        fetch('/hr_policy_query', {
+            method: 'POST',
+            body: formData
+        })
+        .then(response => response.json())
+        .then(data => {
+            hideThinking();
+            const reply = (data.response || "").trim();
+            appendBotMessage(reply);
+            messageHistory.push({ role: 'bot', content: reply });
+        })
+        .catch(error => {
+            hideThinking();
+            appendBotMessage(`Error: ${error.message}`);
+            messageHistory.push({ role: 'error', content: error.message });
+        });
+    }
+
+    window.showQuickOptions = function () {
+        if (currentMode === 'psoft') {
+            const options = [
+                "View Employee Name",
+                "Employee Department",
+                "In Which Role",
+                "Fm In Experience",
+                "Fm Out experience",
+            ];
+            let optionsHtml = "Quick options:<br>" + options.map(opt => 
+                `<button class="btn btn-sm btn-outline-primary m-1" onclick="sendQuickOption('${opt}')">${opt}</button>`
+            ).join('');
+            appendBotMessage(optionsHtml);
+            messageHistory.push({ role: 'bot', content: optionsHtml });
+        } else {
+            const options = [
+                "LTA Policy",
+                "Travel Reimbursement Policy",
+                
+                "Vehicle Conveyance Scheme",
+                "Mediclaim Policy",
+                "Performance Appraisal",
+                "Leave Application Process",
+                "Whistleblowing Policy",
+                "Learning & Development"
+            ];
+            let optionsHtml = "Quick HR Policy options:<br>" + options.map(opt => 
+                `<button class="btn btn-sm btn-outline-primary m-1" onclick="sendQuickOption('${opt}')">${opt}</button>`
+            ).join('');
+            appendBotMessage(optionsHtml);
+            messageHistory.push({ role: 'bot', content: optionsHtml });
+        }
+    };
+
+    window.sendQuickOption = function (option) {
+        appendUserMessage(option);
+        messageHistory.push({ role: 'user', content: option });
+
+        if (currentMode === 'psoft') {
+            processMessage(empid, option);
+        } else {
+            processHRMessage(option);
+        }
+    };
+
+    window.confirmResetChat = function () {
+        initChat();
+        localStorage.removeItem('chatHistory');
+    };
+
+  function appendBotMessage(message) {
+    const chatBox = document.getElementById('chat-box');
+    const div = document.createElement('div');
+    div.className = 'bot-message';
+    div.innerHTML = `
+        <div class="message-icon"></div>
+        <div class="message-content">${message}</div>
+    `;
+    chatBox.appendChild(div);
+    chatBox.scrollTop = chatBox.scrollHeight;
+}
+
+    function appendUserMessage(message) {
+        const chatBox = document.getElementById('chat-box');
+        const div = document.createElement('div');
+        div.className = 'user-message';
+        div.innerHTML = `
+            <div class="message-icon"></div>
+            <div class="message-content">${message}</div>
+        `;
+        chatBox.appendChild(div);
+        chatBox.scrollTop = chatBox.scrollHeight;
+    }
+
+    chatIcon.addEventListener("click", window.toggleChat);
+
+    window.addEventListener('beforeunload', () => {
+        localStorage.setItem('chat-history', JSON.stringify(messageHistory));
+    });
+
+    window.addEventListener('load', () => {
+        const savedHistory = localStorage.getItem('chat-history');
+        if (savedHistory) {
+            messageHistory = JSON.parse(savedHistory);
+            messageHistory.forEach(msg => {
+                if (msg.role === 'user') appendUserMessage(msg.content);
+                else if (msg.role === 'bot') appendBotMessage(msg.content);
+            });
+        }
+        displayInfoMessages();
+        document.getElementById('psoft-input-area').classList.add('active');
+    });
+})();
+</script>
+</body>
+</html>
