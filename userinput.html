@@ -6,6 +6,16 @@
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" />
 </head>
 <body>
+
+    <div id="auth-container">
+        <div class="auth-box">
+            <h2>Login to Employee Assistant Bot</h2>
+            <input type="text" id="username" placeholder="Username" />
+            <input type="password" id="password" placeholder="Password" onkeypress="if(event.key === 'Enter') authenticate()" />
+            <button onclick="authenticate()">Login</button>
+            <div class="auth-error" id="auth-error">Invalid username or password</div>
+        </div>
+    </div>
 <script>
 (function () {
     // Inject styles (unchanged)
@@ -429,6 +439,60 @@
                     padding: 10px;
                 }
             }
+
+             #auth-container {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100vw;
+            height: 100vh;
+            background: rgba(0, 0, 0, 0.5);
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            z-index: 2000;
+        }
+        .auth-box {
+            background: #fff;
+            padding: 30px;
+            border-radius: 10px;
+            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
+            width: 100%;
+            max-width: 400px;
+            text-align: center;
+        }
+        .auth-box h2 {
+            margin-bottom: 20px;
+            font-size: 1.5rem;
+        }
+        .auth-box input {
+            width: 100%;
+            padding: 10px;
+            margin: 10px 0;
+            border: 1px solid #d1d5db;
+            border-radius: 5px;
+            font-size: 1rem;
+        }
+        .auth-box button {
+            padding: 10px 20px;
+            background: #007bff;
+            color: #fff;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+            transition: background 0.3s;
+        }
+        .auth-box button:hover {
+            background: #0056b3;
+        }
+        .auth-error {
+            color: #ff4d4d;
+            margin-top: 10px;
+            display: none;
+        }
+        #chatbot-content {
+            display: none;
+        }
     `;
     document.head.appendChild(style);
 
@@ -440,6 +504,24 @@
     let edqalification = { ug: "BE CS", pg: "Mtech CS", others: "Azure Certificate" };
     let currentMode = 'psoft';
     let awaitingEmpId = false; // Flag to track if waiting for employee ID input
+
+            const VALID_USERNAME = "Psoft_ChatBot";
+        const VALID_PASSWORD = "Peoplesoft@10987";
+
+        window.authenticate = function () {
+            const username = document.getElementById('username').value;
+            const password = document.getElementById('password').value;
+            const authError = document.getElementById('auth-error');
+            const authContainer = document.getElementById('auth-container');
+            const chatbotContent = document.getElementById('chatbot-content');
+
+            if (username === VALID_USERNAME && password === VALID_PASSWORD) {
+                authContainer.style.display = 'none';
+                chatbotContent.style.display = 'block';
+            } else {
+                authError.style.display = 'block';
+            }
+        };
 
     const infoMessages = [
         "👋 HR Chatbot – Your Instant HR Assistant!",
